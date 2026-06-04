@@ -1,6 +1,7 @@
 import express from 'express';
 import { conn } from './db.ts';
 import bodyParser from 'body-parser';
+import bcrypt from "bcryptjs";
 
 const app = express();
 const port = 8080;
@@ -13,6 +14,7 @@ app.get('/', (req, res) => {
     res.send('GET request to the homepage');
 });
 
+//search anime
 app.get('/anime/search/:name', async (req, res) => {
     try {
         const name = req.params.name;
@@ -28,6 +30,7 @@ app.get('/anime/search/:name', async (req, res) => {
     }
 });
 
+//list anime
 app.get('/anime/list', async (req, res) => {
     try {
         const rows = await conn.query('SELECT * FROM Anime');
@@ -38,18 +41,7 @@ app.get('/anime/list', async (req, res) => {
     }
 });
 
-app.delete('/anime/delete/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const rows = await conn.query('DELETE FROM Anime WHERE id = ?', [id]);
-        res.json({"msg": "successfully deleted"})
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ "error": "no ID foud" });
-    }
-});
-
-// Respond to POST request on the root route
+// add anime 
 app.post('/anime/create/', async (req, res) => {
     try {
         const {
@@ -74,10 +66,70 @@ app.post('/anime/create/', async (req, res) => {
     }
 });
 
+//delete anime
+app.delete('/anime/delete/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const rows = await conn.query('DELETE FROM Anime WHERE id = ?', [id]);
+        res.json({"msg": "successfully deleted"})
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ "error": "no ID foud" });
+    }
+});
+
 // Respond to GET request on the /about route
 app.get('/about', (req, res) => {
     res.send('About page');
 });
+
+
+
+
+
+
+
+
+
+
+
+//add user
+app.post('/user/add/', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await conn.query('INSERT INTO Uzerz (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
+        res.status(201).json({ "message": "User created successfully" });
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ "error": "User not created" });
+    }
+});
+
+//delete user
+app.delete('/user/delete/:name', async (req, res) => {
+    try {
+        const name = req.params.name;
+        await conn.query('DELETE FROM Uzerz WHERE username = ?', [name])
+        res.json({"msg": "successfully deleted"})
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ "error": "cannot delete the user" });
+    }
+});
+
+//list Users
+app.get('/user/list', async (req, res) => {
+    try {
+        const rows = await conn.query('SELECT * FROM Uzerz');
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({"error": "error in the table"});
+    }
+    
+});
+
 
 // Start the server
 app.listen(port, () => {
